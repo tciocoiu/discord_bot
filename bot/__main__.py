@@ -6,7 +6,8 @@ from discord.ext import commands
 
 from bot.config import load_config
 from bot.db.engine import create_tables, init_db
-from bot.cogs import activity, loot
+from bot.cogs import activity, bosses, help as help_cog, loot
+from bot.services.boss_timers import restore_timers_on_startup
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,7 +23,10 @@ class LootBot(commands.Bot):
         await create_tables()
         await loot.setup(self, self.config)
         await activity.setup(self)
+        await bosses.setup(self)
+        await help_cog.setup(self)
         await self.tree.sync()
+        await restore_timers_on_startup(self)
         logger.info("Slash commands synced")
 
 

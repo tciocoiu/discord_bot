@@ -74,7 +74,8 @@ async def run_loot_spread(
     people_text: str,
     loot_text: str,
     config: Config,
-) -> tuple[LootSession, list[LootResult], list[Participant]]:
+    activity_bonus: int = 0,
+) -> tuple[LootSession, list[LootResult], list[Participant], list[tuple[str, int]]]:
     raw_people = parse_lines(people_text)
     loot_items = parse_lines(loot_text)
     if not raw_people:
@@ -118,9 +119,19 @@ async def run_loot_spread(
             )
         )
 
+    activity_grants: list[tuple[str, int]] = []
+    if activity_bonus > 0:
+        seen_keys: set[str] = set()
+        for result in results:
+            if result.person_key in seen_keys:
+                continue
+            seen_keys.add(result.person_key)
+            stats_map[result.person_key].activity_points += activity_bonus
+            activity_grants.append((result.display_name, activity_bonus))
+
     await session.commit()
     await session.refresh(loot_session)
-    return loot_session, results, participants
+    return loot_session, results, participants, activity_grants
 
 
 def format_results_embed_data(results: list[LootResult], participants: list[Participant]) -> tuple[str, str]:

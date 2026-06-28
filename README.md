@@ -6,11 +6,25 @@ A Discord bot for weighted loot distribution with bad-luck protection, activity 
 
 | Command | Description |
 |---------|-------------|
-| `/spread-loot` | Opens a modal — enter people (one per line) and loot (one per line). Each loot item is assigned via weighted random. |
+| `/spread-loot` | Opens a modal — people, loot, optional activity points per winner + reason. |
 | `/add-activity` | Add activity points to a user (requires Manage Server). Boosts their loot chance. |
 | `/show-activity` | Show activity points for all tracked members in the server. |
 | `/log` | View recent loot spread sessions. Optional `user` filter. |
 | `/show-logs` | Show all loot distributed in the past 7 days. |
+| `/help` | List all commands, who can use them, and what they do. |
+
+### Boss timers
+
+| Command | Description |
+|---------|-------------|
+| `/set-boss-alerts` | Set channel for 10-minute warnings and boss-up alerts (admin). |
+| `/add-boss` | Add a boss name to the panel (admin). |
+| `/remove-boss` | Remove a boss (admin). |
+| `/boss-panel` | Post button panel — anyone can click to start a 4h timer (admin). |
+
+**Setup:** `/set-boss-alerts #alerts` → `/add-boss` for each boss → `/boss-panel` in your timer channel.
+
+Alerts post to the alert channel at **10 minutes left** and when the boss is **up**. Max 25 bosses per server.
 
 ## How weighting works
 
@@ -111,15 +125,18 @@ bot/
 ├── __main__.py       # Entry point
 ├── config.py         # Env config
 ├── cogs/
-│   ├── loot.py       # /spread-loot, /log
-│   └── activity.py   # /add-activity
+│   ├── loot.py       # /spread-loot, /log, /show-logs
+│   ├── activity.py   # /add-activity, /show-activity
+│   ├── bosses.py     # Boss timer panel + admin commands
+│   └── help.py       # /help
 ├── db/
 │   ├── engine.py     # SQLAlchemy async engine
-│   └── models.py     # Sessions, assignments, user stats
+│   └── models.py     # Sessions, assignments, user stats, bosses
 └── services/
     ├── loot_engine.py   # Weighted distribution
     ├── loot_service.py  # Persistence + logs
-    └── activity.py        # Activity points
+    ├── activity.py      # Activity points
+    └── boss_timers.py   # Boss timer scheduling + panel
 sql/
 ├── schema.sqlite.sql    # SQLite schema (local)
 ├── schema.postgres.sql  # PostgreSQL schema (Railway)

@@ -55,3 +55,48 @@ class UserStats(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+class GuildSettings(Base):
+    __tablename__ = "guild_settings"
+
+    guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    alert_channel_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+
+class BossDefinition(Base):
+    __tablename__ = "boss_definitions"
+    __table_args__ = (UniqueConstraint("guild_id", "name", name="uq_guild_boss_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    guild_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    timer: Mapped["BossTimer | None"] = relationship(
+        back_populates="boss",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+
+class BossTimer(Base):
+    __tablename__ = "boss_timers"
+    __table_args__ = (UniqueConstraint("boss_id", name="uq_boss_timer"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    guild_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    boss_id: Mapped[int] = mapped_column(ForeignKey("boss_definitions.id", ondelete="CASCADE"), index=True)
+    started_by_id: Mapped[int] = mapped_column(BigInteger)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    respawn_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    boss: Mapped["BossDefinition"] = relationship(back_populates="timer")
+
+
+class BossPanel(Base):
+    __tablename__ = "boss_panels"
+
+    guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    channel_id: Mapped[int] = mapped_column(BigInteger)
+    message_id: Mapped[int] = mapped_column(BigInteger)

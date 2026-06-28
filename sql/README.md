@@ -15,6 +15,10 @@ Reference SQL for the Discord Loot Bot database. The bot **creates these tables 
 loot_sessions       — one row per /spread-loot run
 loot_assignments    — who received what (FK → loot_sessions)
 user_stats          — per-guild bad luck + activity tracking
+guild_settings      — alert channel for boss timers
+boss_definitions    — boss names per guild
+boss_timers         — active 4h respawn timers
+boss_panels         — panel message reference for embed refresh
 ```
 
 ## Manual apply (optional)
