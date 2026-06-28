@@ -168,6 +168,16 @@ async def fetch_loot_assignments_past_week(
     return list(result.all())
 
 
+def parse_session_meta(session: LootSession) -> tuple[str, dict | None]:
+    try:
+        data = json.loads(session.loot_json)
+        if isinstance(data, dict) and data.get("kind") == "activity":
+            return "activity", data
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return "loot", None
+
+
 def format_weekly_loot_log(rows: list[tuple[LootAssignment, LootSession]]) -> str:
     sessions: dict[int, tuple[LootSession, list[LootAssignment]]] = {}
     session_order: list[int] = []
@@ -182,7 +192,13 @@ def format_weekly_loot_log(rows: list[tuple[LootAssignment, LootSession]]) -> st
     for session_id in session_order:
         session, assignments = sessions[session_id]
         ts = int(session.created_at.timestamp())
-        lines.append(f"**<t:{ts}:f>**")
+        kind, meta = parse_session_meta(session)
+        if kind == "activity":
+            lines.append(f"**<t:{ts}:f>** — Activity")
+            if meta and meta.get("reason"):
+                lines.append(f"*Reason:* {meta['reason']}")
+        else:
+            lines.append(f"**<t:{ts}:f>**")
         for assignment in assignments:
             lines.append(f"• {assignment.display_name}: {assignment.loot_item}")
         lines.append("")

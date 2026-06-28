@@ -1,20 +1,22 @@
+import json
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.db.models import UserStats
-from bot.services.names import normalize_name
+from bot.db.models import LootAssignment, LootSession, UserStats
+from bot.services.loot_engine import parse_lines, parse_participant
+from bot.services.loot_service import get_or_create_stats
 
 
-async def add_activity(
+async def add_activity_points(
     session: AsyncSession,
     *,
     guild_id: int,
-    discord_user_id: int,
+    person_key: str,
     display_name: str,
+    discord_user_id: int | None,
     amount: int,
 ) -> UserStats:
-    display_name = normalize_name(display_name)
-    person_key = str(discord_user_id)
     result = await session.execute(
         select(UserStats).where(
             UserStats.guild_id == guild_id,
@@ -33,12 +35,77 @@ async def add_activity(
         session.add(stats)
     else:
         stats.display_name = display_name
-        stats.discord_user_id = discord_user_id
+        if discord_user_id is not None:
+            stats.discord_user_id = discord_user_id
         stats.activity_points += amount
 
-    await session.commit()
-    await session.refresh(stats)
+    await session.flush()
     return stats
+
+
+async def run_activity_grant(
+    session: AsyncSession,
+    *,
+    guild_id: int,
+    channel_id: int,
+    created_by_id: int,
+    people_text: str,
+    amount: int,
+    reason: str = "",
+) -> tuple[LootSession, list[tuple[str, int, int]]]:
+    raw_people = parse_lines(people_text)
+    if not raw_people:
+        raise ValueError("People list cannot be empty")
+    if not 1 <= amount <= 1000:
+        raise ValueError("Activity points must be between 1 and 1000")
+
+    parsed = [parse_participant(p) for p in raw_people]
+    await get_or_create_stats(session, guild_id, parsed)
+
+    grants: list[tuple[str, str, int | None, int, int]] = []
+    for person_key, display_name, discord_user_id in parsed:
+        stats = await add_activity_points(
+            session,
+            guild_id=guild_id,
+            person_key=person_key,
+            display_name=display_name,
+            discord_user_id=discord_user_id,
+            amount=amount,
+        )
+        grants.append((person_key, display_name, discord_user_id, amount, stats.activity_points))
+
+    loot_session = LootSession(
+        guild_id=guild_id,
+        channel_id=channel_id,
+        created_by_id=created_by_id,
+        people_json=json.dumps(raw_people),
+        loot_json=json.dumps(
+            {
+                "kind": "activity",
+                "amount": amount,
+                "reason": reason,
+            }
+        ),
+    )
+    session.add(loot_session)
+    await session.flush()
+
+    for person_key, display_name, discord_user_id, grant_amount, _total in grants:
+        session.add(
+            LootAssignment(
+                session_id=loot_session.id,
+                person_key=person_key,
+                display_name=display_name,
+                discord_user_id=discord_user_id,
+                loot_item=f"+{grant_amount} activity",
+            )
+        )
+
+    await session.commit()
+    await session.refresh(loot_session)
+
+    summary = [(display_name, grant_amount, total) for _, display_name, _, grant_amount, total in grants]
+    return loot_session, summary
 
 
 async def fetch_guild_activity(

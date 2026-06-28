@@ -37,7 +37,7 @@ class SpreadLootModal(discord.ui.Modal, title="Spread Loot"):
     reason_input = discord.ui.TextInput(
         label="Reason (optional)",
         style=discord.TextStyle.short,
-        placeholder="Weekly raid",
+        placeholder="Black vs White",
         required=False,
         max_length=200,
     )
@@ -126,7 +126,7 @@ class LootCog(commands.Cog):
 
     @app_commands.command(
         name="show-logs",
-        description="Show all loot distributed in the past 7 days",
+        description="Show loot and activity history from the past 7 days",
     )
     async def show_logs(self, interaction: discord.Interaction) -> None:
         if interaction.guild is None:
@@ -145,7 +145,7 @@ class LootCog(commands.Cog):
 
         if not rows:
             await interaction.response.send_message(
-                "No loot was distributed in the past 7 days.",
+                "No loot or activity history in the past 7 days.",
                 ephemeral=True,
             )
             return
@@ -155,7 +155,7 @@ class LootCog(commands.Cog):
         unique_sessions = len({session.id for _assignment, session in rows})
 
         embed = discord.Embed(
-            title="Loot Log — Past 7 Days",
+            title="Log — Past 7 Days",
             description=body[:4096] or "None",
             color=discord.Color.purple(),
         )

@@ -7,9 +7,9 @@ A Discord bot for weighted loot distribution with bad-luck protection, activity 
 | Command | Description |
 |---------|-------------|
 | `/spread-loot` | Opens a modal — people, loot, optional activity points per winner + reason. |
-| `/add-activity` | Add activity points to a user (requires Manage Server). Boosts their loot chance. |
+| `/add-activity` | Grant activity points to a list of people via modal (admin). Logged in `/show-logs`. |
 | `/show-activity` | Show activity points for all tracked members in the server. |
-| `/show-logs` | Show all loot distributed in the past 7 days. |
+| `/show-logs` | Show loot spreads and activity grants from the past 7 days. |
 | `/wipe` | Reset activity points and bad-luck streaks (server owner only). Loot history kept. |
 | `/help` | List all commands, who can use them, and what they do. |
 

@@ -122,14 +122,30 @@ async def remove_boss(session: AsyncSession, guild_id: int, name: str) -> str:
     return removed_name
 
 
+def sort_bosses_by_spawn(
+    bosses: list[BossDefinition],
+    now: datetime | None = None,
+) -> list[BossDefinition]:
+    """Ready bosses last (A–Z); on cooldown first, soonest respawn at top."""
+    now = now or datetime.now(timezone.utc)
+    ready_last = datetime.max.replace(tzinfo=timezone.utc)
+
+    def sort_key(boss: BossDefinition) -> tuple[datetime, str]:
+        status = compute_boss_status(boss, now)
+        if status.is_ready or status.respawn_at is None:
+            return ready_last, boss.name
+        return status.respawn_at, boss.name
+
+    return sorted(bosses, key=sort_key)
+
+
 async def list_bosses(session: AsyncSession, guild_id: int) -> list[BossDefinition]:
     result = await session.execute(
         select(BossDefinition)
         .where(BossDefinition.guild_id == guild_id)
         .options(selectinload(BossDefinition.timer))
-        .order_by(BossDefinition.name.asc())
     )
-    return list(result.scalars().all())
+    return sort_bosses_by_spawn(list(result.scalars().all()))
 
 
 async def get_boss_by_id(session: AsyncSession, boss_id: int) -> BossDefinition | None:

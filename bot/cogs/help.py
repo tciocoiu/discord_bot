@@ -11,7 +11,7 @@ COMMANDS = [
     {
         "name": "/show-logs",
         "who": "Everyone",
-        "desc": "See all loot given out in the past 7 days.",
+        "desc": "See loot spreads and activity grants from the past 7 days.",
     },
     {
         "name": "/wipe",
@@ -26,7 +26,7 @@ COMMANDS = [
     {
         "name": "/add-activity",
         "who": "Admins (Manage Server)",
-        "desc": "Give activity points to a member (boosts loot chance).",
+        "desc": "Grant activity points to a list of people (logged in /show-logs).",
     },
     {
         "name": "/help",
