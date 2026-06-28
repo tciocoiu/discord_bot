@@ -6,7 +6,7 @@ COMMANDS = [
     {
         "name": "/spread-loot",
         "who": "Everyone",
-        "desc": "Spread loot among people. Optionally grant activity points to each winner.",
+        "desc": "Spread loot among people. Winners get activity (default 1, min 1). Logged in /show-logs.",
     },
     {
         "name": "/show-logs",

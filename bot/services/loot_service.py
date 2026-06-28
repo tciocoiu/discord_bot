@@ -73,7 +73,8 @@ async def run_loot_spread(
     people_text: str,
     loot_text: str,
     config: Config,
-    activity_bonus: int = 0,
+    activity_bonus: int = 1,
+    reason: str = "",
 ) -> tuple[LootSession, list[LootResult], list[Participant], list[tuple[str, int]]]:
     raw_people = parse_lines(people_text)
     loot_items = parse_lines(loot_text)
@@ -102,7 +103,14 @@ async def run_loot_spread(
         channel_id=channel_id,
         created_by_id=created_by_id,
         people_json=json.dumps(raw_people),
-        loot_json=json.dumps(loot_items),
+        loot_json=json.dumps(
+            {
+                "kind": "loot",
+                "items": loot_items,
+                "activity_amount": activity_bonus,
+                "reason": reason,
+            }
+        ),
     )
     session.add(loot_session)
     await session.flush()
@@ -119,7 +127,7 @@ async def run_loot_spread(
         )
 
     activity_grants: list[tuple[str, int]] = []
-    if activity_bonus > 0:
+    if activity_bonus >= 1:
         seen_keys: set[str] = set()
         for result in results:
             if result.person_key in seen_keys:
@@ -127,6 +135,15 @@ async def run_loot_spread(
             seen_keys.add(result.person_key)
             stats_map[result.person_key].activity_points += activity_bonus
             activity_grants.append((result.display_name, activity_bonus))
+            session.add(
+                LootAssignment(
+                    session_id=loot_session.id,
+                    person_key=result.person_key,
+                    display_name=result.display_name,
+                    discord_user_id=result.discord_user_id,
+                    loot_item=f"+{activity_bonus} activity",
+                )
+            )
 
     await session.commit()
     await session.refresh(loot_session)
@@ -171,8 +188,10 @@ async def fetch_loot_assignments_past_week(
 def parse_session_meta(session: LootSession) -> tuple[str, dict | None]:
     try:
         data = json.loads(session.loot_json)
-        if isinstance(data, dict) and data.get("kind") == "activity":
-            return "activity", data
+        if isinstance(data, dict):
+            kind = data.get("kind")
+            if kind in ("activity", "loot"):
+                return kind, data
     except (json.JSONDecodeError, TypeError):
         pass
     return "loot", None
@@ -195,11 +214,15 @@ def format_weekly_loot_log(rows: list[tuple[LootAssignment, LootSession]]) -> st
         kind, meta = parse_session_meta(session)
         if kind == "activity":
             lines.append(f"**<t:{ts}:f>** — Activity")
-            if meta and meta.get("reason"):
-                lines.append(f"*Reason:* {meta['reason']}")
         else:
-            lines.append(f"**<t:{ts}:f>**")
-        for assignment in assignments:
+            lines.append(f"**<t:{ts}:f>** — Loot")
+        if meta and meta.get("reason"):
+            lines.append(f"*Reason:* {meta['reason']}")
+        loot_lines = [a for a in assignments if not a.loot_item.endswith(" activity")]
+        activity_lines = [a for a in assignments if a.loot_item.endswith(" activity")]
+        for assignment in loot_lines:
+            lines.append(f"• {assignment.display_name}: {assignment.loot_item}")
+        for assignment in activity_lines:
             lines.append(f"• {assignment.display_name}: {assignment.loot_item}")
         lines.append("")
 

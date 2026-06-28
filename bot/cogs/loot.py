@@ -28,7 +28,7 @@ class SpreadLootModal(discord.ui.Modal, title="Spread Loot"):
         max_length=4000,
     )
     activity_input = discord.ui.TextInput(
-        label="Activity points per winner (optional)",
+        label="Activity points per winner (min 1, default 1)",
         style=discord.TextStyle.short,
         placeholder="1",
         required=False,
@@ -49,7 +49,7 @@ class SpreadLootModal(discord.ui.Modal, title="Spread Loot"):
     def _parse_activity_bonus(self) -> int | None:
         raw = str(self.activity_input.value or "").strip()
         if not raw:
-            return 0
+            return 1
         try:
             amount = int(raw)
         except ValueError:
@@ -66,7 +66,7 @@ class SpreadLootModal(discord.ui.Modal, title="Spread Loot"):
         activity_bonus = self._parse_activity_bonus()
         if activity_bonus is None:
             await interaction.followup.send(
-                "Activity points must be a whole number between 1 and 1000, or leave blank.",
+                "Activity points must be a whole number between 1 and 1000.",
                 ephemeral=True,
             )
             return
@@ -89,6 +89,7 @@ class SpreadLootModal(discord.ui.Modal, title="Spread Loot"):
                     loot_text=loot_text,
                     config=self.config,
                     activity_bonus=activity_bonus,
+                    reason=reason,
                 )
             except ValueError as exc:
                 await interaction.followup.send(str(exc), ephemeral=True)
