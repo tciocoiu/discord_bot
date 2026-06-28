@@ -214,8 +214,39 @@ async def get_all_panels(session: AsyncSession) -> list[BossPanel]:
     return list(result.scalars().all())
 
 
+def format_boss_status_lines(
+    bosses: list[BossDefinition],
+    now: datetime | None = None,
+) -> list[str]:
+    now = now or datetime.now(timezone.utc)
+    lines: list[str] = []
+    for boss in bosses:
+        status = compute_boss_status(boss, now)
+        if status.is_ready:
+            lines.append(f"**{boss.name}** — Ready")
+        elif status.respawn_at:
+            ts = int(status.respawn_at.timestamp())
+            lines.append(f"**{boss.name}** — <t:{ts}:R> (<t:{ts}:t>)")
+    return lines
+
+
+def build_boss_list_embed(bosses: list[BossDefinition]) -> discord.Embed:
+    embed = discord.Embed(
+        title="Boss Timers",
+        color=discord.Color.dark_red(),
+    )
+    if not bosses:
+        embed.description = "No bosses configured. An admin can add them with `/add-boss`."
+        return embed
+
+    lines = format_boss_status_lines(bosses)
+    embed.description = "\n".join(lines)[:4096]
+    if len("\n".join(lines)) > 4096:
+        embed.set_footer(text="List truncated — too many bosses to show fully.")
+    return embed
+
+
 def build_panel_embed(guild: discord.Guild, bosses: list[BossDefinition]) -> discord.Embed:
-    now = datetime.now(timezone.utc)
     embed = discord.Embed(
         title="Boss Timers",
         description="Click a boss button when it is killed to start a 4-hour respawn timer.",
@@ -226,15 +257,7 @@ def build_panel_embed(guild: discord.Guild, bosses: list[BossDefinition]) -> dis
         embed.add_field(name="No bosses", value="An admin can add bosses with `/add-boss`.", inline=False)
         return embed
 
-    lines = []
-    for boss in bosses:
-        status = compute_boss_status(boss, now)
-        if status.is_ready:
-            lines.append(f"**{boss.name}** — Ready")
-        elif status.respawn_at:
-            ts = int(status.respawn_at.timestamp())
-            lines.append(f"**{boss.name}** — <t:{ts}:R> (<t:{ts}:t>)")
-
+    lines = format_boss_status_lines(bosses)
     embed.add_field(name="Status", value="\n".join(lines)[:1024], inline=False)
     return embed
 
@@ -350,6 +373,32 @@ async def _get_timer(session: AsyncSession, timer_id: int) -> BossTimer | None:
         .options(selectinload(BossTimer.boss))
     )
     return result.scalar_one_or_none()
+
+
+async def refresh_panels_with_active_timers(bot: discord.Client) -> None:
+    session_factory = get_session_factory()
+    now = datetime.now(timezone.utc)
+
+    async with session_factory() as session:
+        result = await session.execute(
+            select(BossTimer.guild_id)
+            .where(BossTimer.respawn_at > now)
+            .distinct()
+        )
+        guild_ids_with_timers = {row[0] for row in result.all()}
+
+        if not guild_ids_with_timers:
+            return
+
+        panels = await get_all_panels(session)
+        guild_ids_to_refresh = [
+            panel.guild_id
+            for panel in panels
+            if panel.guild_id in guild_ids_with_timers
+        ]
+
+    for guild_id in guild_ids_to_refresh:
+        await refresh_panel(bot, guild_id)
 
 
 async def refresh_panel(bot: discord.Client, guild_id: int) -> None:

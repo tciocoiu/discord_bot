@@ -169,11 +169,22 @@ async def fetch_loot_assignments_past_week(
 
 
 def format_weekly_loot_log(rows: list[tuple[LootAssignment, LootSession]]) -> str:
-    by_person: dict[str, list[str]] = defaultdict(list)
-    for assignment, _session in rows:
-        by_person[assignment.display_name].append(assignment.loot_item)
+    sessions: dict[int, tuple[LootSession, list[LootAssignment]]] = {}
+    session_order: list[int] = []
 
-    lines = []
-    for name, items in sorted(by_person.items()):
-        lines.append(f"**{name}**: {', '.join(items)}")
-    return "\n".join(lines)
+    for assignment, session in rows:
+        if session.id not in sessions:
+            sessions[session.id] = (session, [])
+            session_order.append(session.id)
+        sessions[session.id][1].append(assignment)
+
+    lines: list[str] = []
+    for session_id in session_order:
+        session, assignments = sessions[session_id]
+        ts = int(session.created_at.timestamp())
+        lines.append(f"**<t:{ts}:f>**")
+        for assignment in assignments:
+            lines.append(f"• {assignment.display_name}: {assignment.loot_item}")
+        lines.append("")
+
+    return "\n".join(lines).strip()

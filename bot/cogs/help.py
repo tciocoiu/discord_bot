@@ -49,6 +49,11 @@ COMMANDS = [
         "desc": "Remove a boss from the timer panel.",
     },
     {
+        "name": "/list-bosses",
+        "who": "Everyone",
+        "desc": "Show all bosses and their current timer status.",
+    },
+    {
         "name": "/boss-panel",
         "who": "Admins (Manage Server)",
         "desc": "Post the boss timer button panel (click to start 4h timer).",

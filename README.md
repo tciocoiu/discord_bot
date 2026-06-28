@@ -20,11 +20,12 @@ A Discord bot for weighted loot distribution with bad-luck protection, activity 
 | `/set-boss-alerts` | Set channel for 10-minute warnings and boss-up alerts (admin). |
 | `/add-boss` | Add a boss name to the panel (admin). |
 | `/remove-boss` | Remove a boss (admin). |
+| `/list-bosses` | Show all bosses and their current timer status. |
 | `/boss-panel` | Post button panel — anyone can click to start a 4h timer (admin). |
 
 **Setup:** `/set-boss-alerts #alerts` → `/add-boss` for each boss → `/boss-panel` in your timer channel.
 
-Alerts post to the alert channel at **10 minutes left** and when the boss is **up**. Max 25 bosses per server.
+Alerts post to the alert channel at **10 minutes left** and when the boss is **up**. The boss panel auto-refreshes every minute while timers are running. Max 25 bosses per server.
 
 ## How weighting works
 

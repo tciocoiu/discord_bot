@@ -2,7 +2,7 @@ import logging
 
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from bot.db.engine import get_session_factory
 from bot.services import boss_timers
@@ -13,6 +13,39 @@ logger = logging.getLogger(__name__)
 class BossesCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    def cog_load(self) -> None:
+        self.panel_refresh_loop.start()
+
+    def cog_unload(self) -> None:
+        self.panel_refresh_loop.cancel()
+
+    @tasks.loop(minutes=1)
+    async def panel_refresh_loop(self) -> None:
+        try:
+            await boss_timers.refresh_panels_with_active_timers(self.bot)
+        except Exception:
+            logger.exception("Boss panel refresh loop failed")
+
+    @panel_refresh_loop.before_loop
+    async def before_panel_refresh_loop(self) -> None:
+        await self.bot.wait_until_ready()
+
+    @app_commands.command(name="list-bosses", description="Show all bosses and their timer status")
+    async def list_bosses(self, interaction: discord.Interaction) -> None:
+        if interaction.guild is None:
+            await interaction.response.send_message(
+                "This command can only be used in a server.",
+                ephemeral=True,
+            )
+            return
+
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            bosses = await boss_timers.list_bosses(session, interaction.guild.id)
+
+        embed = boss_timers.build_boss_list_embed(bosses)
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="set-boss-alerts", description="Set the channel for boss timer alerts")
     @app_commands.describe(channel="Channel for 10-minute warnings and boss-up messages")
