@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot.db.engine import get_session_factory
-from bot.services.activity import add_activity
+from bot.services.activity import add_activity, fetch_guild_activity, format_member_name
 
 
 class ActivityCog(commands.Cog):
@@ -52,6 +52,47 @@ class ActivityCog(commands.Cog):
             msg += f"\nReason: {reason}"
 
         await interaction.response.send_message(msg, ephemeral=True)
+
+    @app_commands.command(
+        name="show-activity",
+        description="Show activity points for all tracked members",
+    )
+    async def show_activity(self, interaction: discord.Interaction) -> None:
+        if interaction.guild is None:
+            await interaction.response.send_message(
+                "This command can only be used in a server.",
+                ephemeral=True,
+            )
+            return
+
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            members = await fetch_guild_activity(session, guild_id=interaction.guild.id)
+
+        if not members:
+            await interaction.response.send_message(
+                "No activity data yet. Use `/add-activity` or run a loot spread with members.",
+                ephemeral=True,
+            )
+            return
+
+        lines = [
+            f"**{format_member_name(m)}**: {m.activity_points} point(s)"
+            for m in members
+        ]
+        body = "\n".join(lines)
+
+        embed = discord.Embed(
+            title="Activity Points",
+            description=body[:4096],
+            color=discord.Color.green(),
+        )
+        if len(body) > 4096:
+            embed.set_footer(text="List truncated — too many members to show fully.")
+        else:
+            embed.set_footer(text=f"{len(members)} member(s) tracked")
+
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: commands.Bot) -> None:

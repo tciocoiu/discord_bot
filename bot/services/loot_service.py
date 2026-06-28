@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -164,3 +165,33 @@ async def fetch_loot_logs(
 
     result = await session.execute(query)
     return list(result.scalars().unique().all())
+
+
+async def fetch_loot_assignments_past_week(
+    session: AsyncSession,
+    *,
+    guild_id: int,
+    days: int = 7,
+) -> list[tuple[LootAssignment, LootSession]]:
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    result = await session.execute(
+        select(LootAssignment, LootSession)
+        .join(LootSession, LootAssignment.session_id == LootSession.id)
+        .where(
+            LootSession.guild_id == guild_id,
+            LootSession.created_at >= since,
+        )
+        .order_by(LootSession.created_at.desc(), LootAssignment.id.desc())
+    )
+    return list(result.all())
+
+
+def format_weekly_loot_log(rows: list[tuple[LootAssignment, LootSession]]) -> str:
+    by_person: dict[str, list[str]] = defaultdict(list)
+    for assignment, _session in rows:
+        by_person[assignment.display_name].append(assignment.loot_item)
+
+    lines = []
+    for name, items in sorted(by_person.items()):
+        lines.append(f"**{name}**: {', '.join(items)}")
+    return "\n".join(lines)

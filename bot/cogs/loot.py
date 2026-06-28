@@ -4,7 +4,13 @@ from discord.ext import commands
 
 from bot.config import Config
 from bot.db.engine import get_session_factory
-from bot.services.loot_service import fetch_loot_logs, format_results_embed_data, run_loot_spread
+from bot.services.loot_service import (
+    fetch_loot_assignments_past_week,
+    fetch_loot_logs,
+    format_results_embed_data,
+    format_weekly_loot_log,
+    run_loot_spread,
+)
 
 
 class SpreadLootModal(discord.ui.Modal, title="Spread Loot"):
@@ -128,6 +134,48 @@ class LootCog(commands.Cog):
 
         filter_note = f" (filtered: {user.display_name})" if user else ""
         embed.set_footer(text=f"Showing {len(sessions)} session(s){filter_note}")
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(
+        name="show-logs",
+        description="Show all loot distributed in the past 7 days",
+    )
+    async def show_logs(self, interaction: discord.Interaction) -> None:
+        if interaction.guild is None:
+            await interaction.response.send_message(
+                "This command can only be used in a server.",
+                ephemeral=True,
+            )
+            return
+
+        session_factory = get_session_factory()
+        async with session_factory() as db_session:
+            rows = await fetch_loot_assignments_past_week(
+                db_session,
+                guild_id=interaction.guild.id,
+            )
+
+        if not rows:
+            await interaction.response.send_message(
+                "No loot was distributed in the past 7 days.",
+                ephemeral=True,
+            )
+            return
+
+        body = format_weekly_loot_log(rows)
+        total_items = len(rows)
+        unique_sessions = len({session.id for _assignment, session in rows})
+
+        embed = discord.Embed(
+            title="Loot Log — Past 7 Days",
+            description=body[:4096] or "None",
+            color=discord.Color.purple(),
+        )
+        footer = f"{total_items} item(s) across {unique_sessions} session(s)"
+        if len(body) > 4096:
+            footer += " — list truncated"
+        embed.set_footer(text=footer)
 
         await interaction.response.send_message(embed=embed)
 

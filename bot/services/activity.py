@@ -37,3 +37,22 @@ async def add_activity(
     await session.commit()
     await session.refresh(stats)
     return stats
+
+
+async def fetch_guild_activity(
+    session: AsyncSession,
+    *,
+    guild_id: int,
+) -> list[UserStats]:
+    result = await session.execute(
+        select(UserStats)
+        .where(UserStats.guild_id == guild_id)
+        .order_by(UserStats.activity_points.desc(), UserStats.display_name.asc())
+    )
+    return list(result.scalars().all())
+
+
+def format_member_name(stats: UserStats) -> str:
+    if stats.discord_user_id is not None:
+        return f"<@{stats.discord_user_id}>"
+    return stats.display_name

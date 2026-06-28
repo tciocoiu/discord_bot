@@ -8,7 +8,9 @@ A Discord bot for weighted loot distribution with bad-luck protection, activity 
 |---------|-------------|
 | `/spread-loot` | Opens a modal — enter people (one per line) and loot (one per line). Each loot item is assigned via weighted random. |
 | `/add-activity` | Add activity points to a user (requires Manage Server). Boosts their loot chance. |
+| `/show-activity` | Show activity points for all tracked members in the server. |
 | `/log` | View recent loot spread sessions. Optional `user` filter. |
+| `/show-logs` | Show all loot distributed in the past 7 days. |
 
 ## How weighting works
 
