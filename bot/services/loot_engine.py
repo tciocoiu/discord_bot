@@ -3,6 +3,7 @@ import re
 from dataclasses import dataclass
 
 from bot.config import Config
+from bot.services.names import normalize_name
 
 MENTION_PATTERN = re.compile(r"<@!?(\d+)>")
 
@@ -34,8 +35,8 @@ def parse_participant(raw: str) -> tuple[str, str, int | None]:
     if mention:
         user_id = int(mention.group(1))
         return str(user_id), f"<@{user_id}>", user_id
-    normalized = raw.strip().lower()
-    return normalized, raw.strip(), None
+    normalized = normalize_name(raw)
+    return normalized, normalized, None
 
 
 def compute_weight(participant: Participant, config: Config) -> float:

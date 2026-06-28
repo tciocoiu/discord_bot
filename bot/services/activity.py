@@ -1,7 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.db.models import UserStats
+from bot.services.names import normalize_name
 
 
 async def add_activity(
@@ -12,6 +13,7 @@ async def add_activity(
     display_name: str,
     amount: int,
 ) -> UserStats:
+    display_name = normalize_name(display_name)
     person_key = str(discord_user_id)
     result = await session.execute(
         select(UserStats).where(
@@ -56,3 +58,14 @@ def format_member_name(stats: UserStats) -> str:
     if stats.discord_user_id is not None:
         return f"<@{stats.discord_user_id}>"
     return stats.display_name
+
+
+async def wipe_guild_activity(session: AsyncSession, *, guild_id: int) -> int:
+    """Reset activity points and miss streaks. Loot history is unchanged."""
+    result = await session.execute(
+        update(UserStats)
+        .where(UserStats.guild_id == guild_id)
+        .values(activity_points=0, miss_streak=0)
+    )
+    await session.commit()
+    return result.rowcount or 0

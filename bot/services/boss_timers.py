@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from bot.db.engine import get_session_factory
 from bot.db.models import BossDefinition, BossPanel, BossTimer, GuildSettings
+from bot.services.names import normalize_name
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ async def set_alert_channel(session: AsyncSession, guild_id: int, channel_id: in
 
 
 async def add_boss(session: AsyncSession, guild_id: int, name: str) -> BossDefinition:
-    name = name.strip()
+    name = normalize_name(name)
     if not name:
         raise ValueError("Boss name cannot be empty")
 
@@ -102,7 +103,7 @@ async def add_boss(session: AsyncSession, guild_id: int, name: str) -> BossDefin
 
 
 async def remove_boss(session: AsyncSession, guild_id: int, name: str) -> str:
-    name = name.strip()
+    name = normalize_name(name)
     result = await session.execute(
         select(BossDefinition).where(
             BossDefinition.guild_id == guild_id,

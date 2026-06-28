@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot.db.engine import get_session_factory
-from bot.services.activity import add_activity, fetch_guild_activity, format_member_name
+from bot.services.activity import add_activity, fetch_guild_activity, format_member_name, wipe_guild_activity
 
 
 class ActivityCog(commands.Cog):
@@ -93,6 +93,35 @@ class ActivityCog(commands.Cog):
             embed.set_footer(text=f"{len(members)} member(s) tracked")
 
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(
+        name="wipe",
+        description="Reset all activity points and bad-luck streaks (server owner only)",
+    )
+    async def wipe(self, interaction: discord.Interaction) -> None:
+        if interaction.guild is None:
+            await interaction.response.send_message(
+                "This command can only be used in a server.",
+                ephemeral=True,
+            )
+            return
+
+        if interaction.user.id != interaction.guild.owner_id:
+            await interaction.response.send_message(
+                "Only the **server owner** can use this command.",
+                ephemeral=True,
+            )
+            return
+
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            count = await wipe_guild_activity(session, guild_id=interaction.guild.id)
+
+        await interaction.response.send_message(
+            f"Wiped activity for **{count}** tracked member(s). "
+            "Loot history (`/show-logs`) is unchanged.",
+            ephemeral=True,
+        )
 
 
 async def setup(bot: commands.Bot) -> None:

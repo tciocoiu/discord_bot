@@ -6,7 +6,6 @@ from bot.config import Config
 from bot.db.engine import get_session_factory
 from bot.services.loot_service import (
     fetch_loot_assignments_past_week,
-    fetch_loot_logs,
     format_results_embed_data,
     format_weekly_loot_log,
     run_loot_spread,
@@ -124,62 +123,6 @@ class LootCog(commands.Cog):
     @app_commands.command(name="spread-loot", description="Spread loot among people using weighted random")
     async def spread_loot(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(SpreadLootModal(self.config))
-
-    @app_commands.command(name="log", description="View recent loot spread history")
-    @app_commands.describe(
-        limit="Number of sessions to show (max 25)",
-        user="Filter to sessions where this user received loot",
-    )
-    async def log(
-        self,
-        interaction: discord.Interaction,
-        limit: app_commands.Range[int, 1, 25] = 10,
-        user: discord.Member | None = None,
-    ) -> None:
-        if interaction.guild is None:
-            await interaction.response.send_message(
-                "This command can only be used in a server.",
-                ephemeral=True,
-            )
-            return
-
-        session_factory = get_session_factory()
-        async with session_factory() as db_session:
-            sessions = await fetch_loot_logs(
-                db_session,
-                guild_id=interaction.guild.id,
-                limit=limit,
-                user_id=user.id if user else None,
-            )
-
-        if not sessions:
-            await interaction.response.send_message("No loot sessions found.", ephemeral=True)
-            return
-
-        embed = discord.Embed(
-            title="Loot Spread Log",
-            color=discord.Color.blue(),
-        )
-
-        for loot_session in sessions:
-            summary_parts = []
-            for assignment in loot_session.assignments:
-                summary_parts.append(f"{assignment.display_name}: {assignment.loot_item}")
-            summary = "\n".join(summary_parts[:5])
-            if len(loot_session.assignments) > 5:
-                summary += f"\n... +{len(loot_session.assignments) - 5} more"
-
-            timestamp = loot_session.created_at.strftime("%Y-%m-%d %H:%M UTC") if loot_session.created_at else "?"
-            embed.add_field(
-                name=f"Session #{loot_session.id} — {timestamp}",
-                value=summary[:1024] or "No assignments",
-                inline=False,
-            )
-
-        filter_note = f" (filtered: {user.display_name})" if user else ""
-        embed.set_footer(text=f"Showing {len(sessions)} session(s){filter_note}")
-
-        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(
         name="show-logs",

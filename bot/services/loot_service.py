@@ -2,9 +2,8 @@ import json
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import exists, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from bot.config import Config
 from bot.db.models import LootAssignment, LootSession, UserStats
@@ -148,34 +147,6 @@ def format_results_embed_data(results: list[LootResult], participants: list[Part
     empty_line = ", ".join(empty) if empty else "None"
 
     return "\n".join(lines), empty_line
-
-
-async def fetch_loot_logs(
-    session: AsyncSession,
-    *,
-    guild_id: int,
-    limit: int = 10,
-    user_id: int | None = None,
-) -> list[LootSession]:
-    query = (
-        select(LootSession)
-        .where(LootSession.guild_id == guild_id)
-        .options(selectinload(LootSession.assignments))
-        .order_by(LootSession.created_at.desc())
-        .limit(limit)
-    )
-
-    if user_id is not None:
-        person_key = str(user_id)
-        query = query.where(
-            exists().where(
-                LootAssignment.session_id == LootSession.id,
-                LootAssignment.person_key == person_key,
-            )
-        )
-
-    result = await session.execute(query)
-    return list(result.scalars().unique().all())
 
 
 async def fetch_loot_assignments_past_week(

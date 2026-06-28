@@ -9,8 +9,8 @@ A Discord bot for weighted loot distribution with bad-luck protection, activity 
 | `/spread-loot` | Opens a modal — people, loot, optional activity points per winner + reason. |
 | `/add-activity` | Add activity points to a user (requires Manage Server). Boosts their loot chance. |
 | `/show-activity` | Show activity points for all tracked members in the server. |
-| `/log` | View recent loot spread sessions. Optional `user` filter. |
 | `/show-logs` | Show all loot distributed in the past 7 days. |
+| `/wipe` | Reset activity points and bad-luck streaks (server owner only). Loot history kept. |
 | `/help` | List all commands, who can use them, and what they do. |
 
 ### Boss timers
@@ -125,8 +125,8 @@ bot/
 ├── __main__.py       # Entry point
 ├── config.py         # Env config
 ├── cogs/
-│   ├── loot.py       # /spread-loot, /log, /show-logs
-│   ├── activity.py   # /add-activity, /show-activity
+│   ├── loot.py       # /spread-loot, /show-logs
+│   ├── activity.py   # /add-activity, /show-activity, /wipe
 │   ├── bosses.py     # Boss timer panel + admin commands
 │   └── help.py       # /help
 ├── db/

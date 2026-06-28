@@ -9,14 +9,14 @@ COMMANDS = [
         "desc": "Spread loot among people. Optionally grant activity points to each winner.",
     },
     {
-        "name": "/log",
-        "who": "Everyone",
-        "desc": "View recent loot spread sessions.",
-    },
-    {
         "name": "/show-logs",
         "who": "Everyone",
         "desc": "See all loot given out in the past 7 days.",
+    },
+    {
+        "name": "/wipe",
+        "who": "Server owner only",
+        "desc": "Reset all activity points and bad-luck streaks. Loot logs stay.",
     },
     {
         "name": "/show-activity",
