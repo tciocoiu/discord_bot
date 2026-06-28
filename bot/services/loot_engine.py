@@ -6,6 +6,7 @@ from bot.config import Config
 from bot.services.names import normalize_name
 
 MENTION_PATTERN = re.compile(r"<@!?(\d+)>")
+LOOT_QUANTITY_PATTERN = re.compile(r"^(\d+)\s+(.+)$")
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,57 @@ def compute_weight(participant: Participant, config: Config) -> float:
     )
 
 
+def parse_splittable_loot(item: str) -> tuple[int, str] | None:
+    """Return (quantity, label) when item is like '400 bes'; None for single items."""
+    match = LOOT_QUANTITY_PATTERN.match(item.strip())
+    if not match:
+        return None
+    quantity = int(match.group(1))
+    label = match.group(2).strip()
+    if quantity <= 1 or not label:
+        return None
+    return quantity, label
+
+
+def format_quantity_loot(amount: int, label: str) -> str:
+    return f"{amount} {label}"
+
+
+def split_quantity_loot(
+    quantity: int,
+    label: str,
+    participants: list[Participant],
+    config: Config,
+) -> list[LootResult]:
+    n = len(participants)
+    amounts = [quantity // n] * n
+    remainder = quantity % n
+
+    if remainder:
+        indices = list(range(n))
+        weights = [compute_weight(participants[i], config) for i in indices]
+        for _ in range(remainder):
+            chosen = random.choices(indices, weights=weights, k=1)[0]
+            amounts[chosen] += 1
+            pick = indices.index(chosen)
+            indices.pop(pick)
+            weights.pop(pick)
+
+    results: list[LootResult] = []
+    for participant, amount in zip(participants, amounts):
+        if amount <= 0:
+            continue
+        results.append(
+            LootResult(
+                person_key=participant.person_key,
+                display_name=participant.display_name,
+                discord_user_id=participant.discord_user_id,
+                loot_item=format_quantity_loot(amount, label),
+            )
+        )
+    return results
+
+
 def distribute_loot(
     participants: list[Participant],
     loot_items: list[str],
@@ -59,6 +111,12 @@ def distribute_loot(
 
     results: list[LootResult] = []
     for item in loot_items:
+        parsed = parse_splittable_loot(item)
+        if parsed is not None:
+            quantity, label = parsed
+            results.extend(split_quantity_loot(quantity, label, participants, config))
+            continue
+
         weights = [compute_weight(p, config) for p in participants]
         winner = random.choices(participants, weights=weights, k=1)[0]
         results.append(

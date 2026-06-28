@@ -20,7 +20,7 @@ class BossesCog(commands.Cog):
     def cog_unload(self) -> None:
         self.panel_refresh_loop.cancel()
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(seconds=1)
     async def panel_refresh_loop(self) -> None:
         try:
             await boss_timers.refresh_panels_with_active_timers(self.bot)

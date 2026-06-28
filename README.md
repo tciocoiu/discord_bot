@@ -25,7 +25,7 @@ A Discord bot for weighted loot distribution with bad-luck protection, activity 
 
 **Setup:** `/set-boss-alerts #alerts` → `/add-boss` for each boss → `/boss-panel` in your timer channel.
 
-Alerts post to the alert channel at **10 minutes left** and when the boss is **up**. The boss panel auto-refreshes every minute while timers are running. Max 25 bosses per server.
+Alerts post to the alert channel at **10 minutes left** and when the boss is **up**. The boss panel auto-refreshes every second while timers are running. Max 25 bosses per server.
 
 ## How weighting works
 
@@ -41,6 +41,8 @@ Defaults: `BASE_WEIGHT=1.0`, `BAD_LUCK_WEIGHT=0.5`, `ACTIVITY_WEIGHT=0.1`
 - **Activity:** Points from `/add-activity` persist and increase weight (not consumed on win).
 
 Use Discord mentions (`@User`) in the people list to track stats by user ID.
+
+**Splittable loot:** Lines starting with a number greater than 1 (e.g. `400 bes`) are divided evenly among everyone in the people list. Any remainder is assigned using the same weighted random rules. Single items (e.g. `Rare gem`) still go to one winner.
 
 ## Database
 

@@ -16,21 +16,21 @@ class SpreadLootModal(discord.ui.Modal, title="Spread Loot"):
     people_input = discord.ui.TextInput(
         label="People (one per line)",
         style=discord.TextStyle.paragraph,
-        placeholder="Alice\n@Bob\nCharlie",
+        placeholder="Bay\nVerm\nForest",    
         required=True,
         max_length=4000,
     )
     loot_input = discord.ui.TextInput(
         label="Loot (one per line)",
         style=discord.TextStyle.paragraph,
-        placeholder="Sword of Truth\n500 gold\nRare gem",
+        placeholder="400 bes\n500 gold\n2 TS",
         required=True,
         max_length=4000,
     )
     activity_input = discord.ui.TextInput(
         label="Activity points per winner (optional)",
         style=discord.TextStyle.short,
-        placeholder="5",
+        placeholder="1",
         required=False,
         max_length=4,
     )

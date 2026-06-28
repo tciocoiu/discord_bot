@@ -50,10 +50,12 @@ def format_remaining(remaining: timedelta) -> str:
     if total_seconds <= 0:
         return "Ready"
     hours, rem = divmod(total_seconds, 3600)
-    minutes, _ = divmod(rem, 60)
+    minutes, seconds = divmod(rem, 60)
     if hours:
-        return f"{hours}h {minutes}m"
-    return f"{minutes}m"
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
 
 
 async def get_guild_settings(session: AsyncSession, guild_id: int) -> GuildSettings | None:
